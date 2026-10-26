@@ -1,0 +1,26 @@
+{
+  "name": "@tatkalpro/queue",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@tatkalpro/contracts": "workspace:*",
+    "@tatkalpro/observability": "workspace:*",
+    "bullmq": "^5.34.5",
+    "ioredis": "^5.4.2"
+  },
+  "devDependencies": {
+    "@tatkalpro/config": "workspace:*",
+    "typescript": "^5.7.2"
+  }
+}

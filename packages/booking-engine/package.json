@@ -1,0 +1,28 @@
+{
+  "name": "@tatkalpro/booking-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "record:irctc": "tsx src/record-cli.ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@tatkalpro/contracts": "workspace:*",
+    "@tatkalpro/core": "workspace:*",
+    "undici": "^7.1.0"
+  },
+  "devDependencies": {
+    "@tatkalpro/config": "workspace:*",
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

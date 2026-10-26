@@ -1,0 +1,26 @@
+{
+  "name": "@tatkalpro/observability",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@opentelemetry/sdk-node": "^0.56.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.54.0",
+    "pino": "^9.5.0",
+    "prom-client": "^15.1.3"
+  },
+  "devDependencies": {
+    "@tatkalpro/config": "workspace:*",
+    "typescript": "^5.7.2"
+  }
+}

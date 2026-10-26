@@ -1,0 +1,25 @@
+{
+  "name": "@tatkalpro/captcha-solver",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "harvest": "tsx src/harvest.ts",
+    "train": "python3 train/train.py",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "onnxruntime-node": "^1.20.1",
+    "sharp": "^0.33.5"
+  },
+  "devDependencies": {
+    "@tatkalpro/config": "workspace:*",
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

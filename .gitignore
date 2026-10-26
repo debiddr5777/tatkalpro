@@ -1,0 +1,34 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+dist/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# env & secrets — never commit
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# runtime data
+*.log
+har/
+captcha-data/
+models/*.onnx
+
+# infra local state
+docker/volumes/
+grafana-data/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+!.vscode/extensions.json
