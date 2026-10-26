@@ -1,0 +1,117 @@
+#TATKALPRO/AGENT_LEDGER v1
+#format: 2 sections. @@SNAPSHOT = canonical current state (REWRITE this whole block when state changes).
+#@@LOG = append-only event stream (JSONL, NEVER rewrite/delete lines, only append).
+#RULES FOR ANY MODEL READING THIS:
+#1. Read @@SNAPSHOT first = ground truth. Read @@LOG for full history/rationale.
+#2. Before doing ANY work: re-read this file. Do not contradict @@SNAPSHOT.
+#3. After completing any unit of work: (a) update @@SNAPSHOT, (b) append one @@LOG line. Do both in the same edit session.
+#4. Never add logic/features not listed in @@SNAPSHOT.scope. If a new idea is needed, append it to backlog, do not implement without updating scope.
+#5. Never break: TS strict, hexagonal layering (domain imports nothing), Zod-contract-first, no `any`, no auto-payment, no secrets in code.
+#6. All files UTF-8, LF, 2-space indent. Conventional commits.
+#7. If this file and code disagree, CODE WINS -> fix the file, not the code, then append a CONFICT log entry.
+
+@@SNAPSHOT
+project: tatkalpro
+goal: "self-hosted open-source IRCTC Tatkal booking super-app; pre-save journey details; fire millisecond-precise request at T-0 (10:00/10:03/10:10 IST quota open) to maximise queue position; captcha solved in-process; human confirms payment"
+owner: user (github account: debiddr5777)
+license: MIT
+repo_local_path: /workspaces/codespaces-blank/tatkalpro
+git: repo initialized, branch main, commit 959410b (74 files, 2737 insertions)
+push_status: BLOCKED - GITHUB_TOKEN lacks createRepository permission (fine-grained token, account debiddr5777). Awaiting user to either create repo manually (github.com/new, name tatkalpro, public, no init) then push, or grant Administration:read&write.
+stage: FRAMEWORK_SCAFFOLDED (compiles conceptually, deps NOT installed yet, next: install+verify+build)
+
+stack:
+  language: TypeScript5 strict, ESM, Node22
+  monorepo: pnpm workspaces + Turborepo
+  api: Fastify (REST + ws, OpenAPI/Swagger at /docs)
+  jobs: BullMQ on Redis (delayed jobs for T-0 scheduling)
+  db: PostgreSQL16 + Drizzle ORM
+  web: Next.js15 + Tailwind + TanStack Query + Zustand (live countdown)
+  captcha: ONNX model via onnxruntime-node (in-process, <50ms), Tesseract.js fallback, human-in-the-loop last resort
+  http: undici Pool keep-alive (T-0 pre-warm), NOT axios (keep-alive control)
+  drivers: BookingDriver port with HttpDriver (primary), PlaywrightDriver (fallback/records HAR), MockDriver (HAR replay, tests/CI)
+  obs: OpenTelemetry + Prometheus + Grafana + Loki + pino (secret redaction)
+  env: docker-compose (postgres redis prometheus grafana loki)
+  tests: vitest (packages), k6 (load, later)
+  ci: GitHub Actions (lint, typecheck, unit, build)
+
+hard_rules:
+  - domain layer (packages/core) imports NOTHING from infra
+  - all cross-boundary data = Zod schemas in packages/contracts (single source of truth)
+  - all time via injectable Clock port (no Date.now in domain)
+  - config fails fast at boot (packages/config Zod env)
+  - secrets env-only; .env.example documented; NEVER commit secrets
+  - payments NEVER auto-completed; human confirms; hard limit 4 passengers (IRCTC tatkal rule)
+  - one in-flight booking per journey (Redis single-flight lock)
+  - no monetary features ever; fully open-source, free forever
+
+t0_playbook:
+  T-30min: session login (captcha auto), JWT held, heartbeat every 4min
+  T-15min: availability snapshot pre-fetched
+  T-5min: booking payload pre-computed, Zod-validated, serialized
+  T-2min: TLS + keep-alive connections pre-warmed (undici Pool)
+  T-0: fire payload + fresh captcha, single-flight; key insight: IRCTC queue position = server arrival time, so eliminate ALL pre-T-0 latency
+  T+2s: review captcha submitted (<=3 retries, <2s each)
+  T+5s: payment surface in UI -> human confirms
+
+repo_map:
+  apps/api: Fastify gateway (REST+WS+OpenAPI+health)
+  apps/worker: BullMQ booking orchestrator (the T-0 engine)
+  apps/web: Next.js countdown UI
+  apps/captcha-solver: ONNX inference + harvest/train scripts (train/README.md)
+  packages/core: state-machine, clock, errors (IRCTC error taxonomy), tests
+  packages/contracts: Zod schemas (journeys, passengers, WS events, tatkal timings)
+  packages/db: Drizzle schema (users, journeys, passengers, attempts, sessions, captcha_samples, audit)
+  packages/booking-engine: BookingDriver port + drivers/mock-driver.ts
+  packages/queue: BullMQ queues + retry + fire-time computation (skew+jitter)
+  packages/observability: metrics + pino + OTel
+  packages/config: Zod env
+  infra: prometheus.yml, grafana dashboards/provisioning
+  docs: ADR/0001-tech-stack.md, ADR/0002-t0-firing-playbook.md, IRCTC_FLOW.md, RUNBOOK.md
+  SYSTEM_PROMPT.md: full AI-agent build prompt (the original user spec)
+  README.md: badges, mermaid timeline+architecture, roadmap checkboxes
+  Makefile: db-up, dev, etc.
+  .github/workflows/ci.yml
+
+reference_repo_analysis:
+  source: /workspaces/codespaces-blank/irctc-cypress-automation (user-provided)
+  what_it_is: Cypress browser automation, NOT raw API calls. Key learnings extracted:
+  - login flow: visit irctc.co.in/nget/train-search -> click login btn -> fill username/password (invoke('val')+trigger('input') for Angular) -> captcha from .captcha-img base64 -> POST localhost:5000/extract-text (EasyOCR Flask) -> type + Enter -> recursive retry on "Invalid Captcha"
+  - quota select: #journeyQuota dropdown; nth-child(6)=TATKAL, nth-child(7)=PREMIUM_TATKAL
+  - wait-for-open: poll body text for "Booking not yet started for the selected quota and class"; when gone, click train row (.bull-back) matching TRAIN_NO+TRAIN_COACH, click date, click "Book Now"
+  - passenger form: .ui-autocomplete input (name), input[formcontrolname="passengerAge"], select[formcontrolname="passengerGender"], select[formcontrolname="passengerBerthChoice"], select[formcontrolname="passengerFoodChoice"], "Book only if confirm berths" checkbox, "Consider for Auto Upgradation"
+  - coach codes: SL|2A|3A|3E|1A|CC|EC|2S; berth: Lower|Middle|Upper|Side Lower|Side Upper|Window Side|No Preference; gender: Male|Female|Transgender; food: Veg|Non Veg|No Food
+  - payment: select UPI radio -> Next -> review page captcha (2nd stage) -> BHIM UPI -> Pay -> Paytm gateway (securegw.paytm.in/theia/processTransaction) -> UPI id input or QR scan -> human pays
+  - error strings observed: "Invalid Captcha", "Unable to process current transaction", "Sorry!!! Please Try again!!", "No seats available", "Booking not yet started for the selected quota and class", "Your Last Transaction" dialog, "Confirmation" dialog (vande bharat no-food popup)
+  - captcha solver: EasyOCR models craft_mlt_25k.pth + english_g2.pth, Flask app-server.py, POST /extract-text {image: base64}
+  - lessons: selectors brittle -> our HttpDriver uses captured HARs; UI selectors kept only in PlaywrightDriver
+
+user_preferences:
+  - wants full end-to-end build by AI agent; user reviews
+  - free/open-source forever, no monetary features
+  - concrete, principled, clean architecture (TS strict, hexagonal, Zod-first)
+  - likes: badges, mermaid diagrams, tables, roadmap checkboxes in README
+  - proposed stack approved by user (REST+WS, Celery-like -> chose BullMQ, OIDC, env+secret mgr, OTel+Prom+Grafana, docker-compose, OpenAPI) with TS+Redis substitution
+  - wants TIMELINE file (this file) auto-updated by any model after each work unit
+
+backlog:
+  - [ ] push to github (BLOCKED, needs user)
+  - [ ] pnpm install; fix any type errors; make turbo build/test green
+  - [ ] PlaywrightDriver + HAR recorder CLI (pnpm record:irctc)
+  - [ ] HttpDriver implemented from captured HARs
+  - [ ] captcha model training pipeline + labeling UI (harvest.ts exists)
+  - [ ] full booking orchestrator (T-0 timeline wiring in worker)
+  - [ ] grafana dashboards + alerting
+  - [ ] k6 T-0 spike load tests
+  - [ ] web UI journey management screens (current page.tsx is countdown placeholder)
+  - [ ] heartbeat + session refresh job
+  - [ ] clock-skew measurement (compare server time vs NTP vs IRCTC Date header)
+
+@@LOG
+[001] 2026-10-26T10:00Z INIT user asked for IRCTC tatkal super-app; goal = maximise queue position via pre-saved data + T-0 firing; provided irctc-cypress-automation repo for analysis; proposed stack: REST+WS, celery+redis, authlib, OTel, docker-compose, OpenAPI
+[002] 2026-10-26T10:05Z ANALYZE read reference repo fully: cypress/e2e/irctc.cy.js (328L), cypress/support/commands.js (333L), package.json, readme.md, EasyOCR models, Flask captcha server. Extracted: login flow, quota dropdown indexes (6=TA,7=PT), wait-for-open polling, passenger form selectors, coach/berth/gender/food enums, error strings, 2-stage captcha, Paytm UPI gateway. Conclusion: cypress is browser-level; our system will be HTTP-level (raw API from HARs) for speed, with Playwright fallback.
+[003] 2026-10-26T10:08Z DECISION stack locked: TS strict + pnpm/turbo monorepo, Fastify, BullMQ+Redis (replaces celery), Drizzle+Postgres, Next.js, ONNX in-process captcha (replaces EasyOCR sidecar, <50ms vs ~1-2s), undici keep-alive pool for T-0, OTel+Prom+Grafana, docker-compose, vitest. Rationale: ms-level T-0 precision needs in-process work, not browser.
+[004] 2026-10-26T10:10Z BUILD scaffolded 74 files: 4 apps, 7 packages, infra, docs (2 ADRs), CI, Makefile, README (badges+mermaid), SYSTEM_PROMPT.md. Core: state machine (journey lifecycle), Clock port, error taxonomy, Zod contracts, Drizzle schema, BookingDriver port + MockDriver, BullMQ fire-time calc, metrics (arrival_vs_t0, captcha accuracy, queue depth).
+[005] 2026-10-26T10:12Z COMMIT 959410b "feat: initial framework - TatkalPro monorepo scaffold" on main (74 files, 2737 insertions)
+[006] 2026-10-26T10:13Z BLOCKED gh repo create failed: GITHUB_TOKEN (account debiddr5777) lacks createRepository. Told user options: (a) create repo manually at github.com/new name=tatkalpro public no-init then we push; (b) grant Administration:read&write to token. Awaiting user.
+[007] 2026-10-26T10:20Z LEDGER created this TIMELINE file per user request. Protocol: any model must read @@SNAPSHOT first, append to @@LOG after each work unit, rewrite @@SNAPSHOT when state changes, never rewrite @@LOG. Added AGENTS.md pointer. Next step = resolve push, then pnpm install + make builds green.
