@@ -17,7 +17,7 @@ owner: user (github account: debiddr5777)
 license: MIT
 repo_local_path: /workspaces/codespaces-blank/tatkalpro
 git: repo initialized, branch main, commit 959410b (74 files, 2737 insertions)
-push_status: BLOCKED - GITHUB_TOKEN lacks createRepository permission (fine-grained token, account debiddr5777). Awaiting user to either create repo manually (github.com/new, name tatkalpro, public, no init) then push, or grant Administration:read&write.
+push_status: DONE - pushed to https://github.com/debiddr5777/tatkalpro.git (commits 959410b, 6c68e9d on main)
 stage: FRAMEWORK_SCAFFOLDED (compiles conceptually, deps NOT installed yet, next: install+verify+build)
 
 stack:
@@ -115,3 +115,4 @@ backlog:
 [005] 2026-10-26T10:12Z COMMIT 959410b "feat: initial framework - TatkalPro monorepo scaffold" on main (74 files, 2737 insertions)
 [006] 2026-10-26T10:13Z BLOCKED gh repo create failed: GITHUB_TOKEN (account debiddr5777) lacks createRepository. Told user options: (a) create repo manually at github.com/new name=tatkalpro public no-init then we push; (b) grant Administration:read&write to token. Awaiting user.
 [007] 2026-10-26T10:20Z LEDGER created this TIMELINE file per user request. Protocol: any model must read @@SNAPSHOT first, append to @@LOG after each work unit, rewrite @@SNAPSHOT when state changes, never rewrite @@LOG. Added AGENTS.md pointer. Next step = resolve push, then pnpm install + make builds green.
+[008] 2026-10-26T10:25Z PUSH_DONE pushed commits 959410b + 6c68e9d to https://github.com/debiddr5777/tatkalpro.git main. Repo live. Next steps: pnpm install, make builds green, then backlog items (PlaywrightDriver/HAR recorder, HttpDriver, captcha model pipeline, full orchestrator).
